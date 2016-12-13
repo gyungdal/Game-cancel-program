@@ -2,7 +2,7 @@
 #include <tlhelp32.h>
 #include <tchar.h>
 #include <inttypes.h>
-#include <Wincrypt.h>
+#include <wincrypt.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,38 +16,37 @@ BOOL KillProcess(DWORD);
 char* GetMD5();
 void printError(TCHAR*);
 
+typedef struct g {
+	DWORD pid;
+	WCHAR exeName[256], MD5[256], exePath[512];
+} Game;
 
-int main(void)
-{
+int main(void){
 	GetProcessList();
 	return 0;
 }
 
-BOOL GetProcessList()
-{
+BOOL GetProcessList(){
 	HANDLE hProcessSnap;
 	HANDLE hProcess;
 	PROCESSENTRY32 pe32;
 	DWORD dwPriorityClass;
 
 	hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hProcessSnap == INVALID_HANDLE_VALUE)
-	{
+	if (hProcessSnap == INVALID_HANDLE_VALUE){
 		printError(TEXT("CreateToolhelp32Snapshot (of processes)"));
 		return(FALSE);
 	}
 
 	pe32.dwSize = sizeof(PROCESSENTRY32);
 
-	if (!Process32First(hProcessSnap, &pe32))
-	{
+	if (!Process32First(hProcessSnap, &pe32)){
 		printError(TEXT("Process32First")); 
 		CloseHandle(hProcessSnap);         
 		return(FALSE);
 	}
 
-	do
-	{
+	do	{
 		_tprintf(TEXT("\n\n====================================================="));
 		_tprintf(TEXT("\nPROCESS NAME:  %s"), pe32.szExeFile);
 		_tprintf(TEXT("\n-------------------------------------------------------"));
@@ -56,8 +55,7 @@ BOOL GetProcessList()
 		hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
 		if (hProcess == NULL)
 			printError(TEXT("OpenProcess"));
-		else
-		{
+		else{
 			dwPriorityClass = GetPriorityClass(hProcess);
 			if (!dwPriorityClass)
 				printError(TEXT("GetPriorityClass"));
@@ -81,29 +79,25 @@ BOOL GetProcessList()
 }
 
 
-BOOL ListProcessModules(DWORD dwPID)
-{
+BOOL ListProcessModules(DWORD dwPID){
 	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
 	MODULEENTRY32 me32;
 
 	hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwPID);
-	if (hModuleSnap == INVALID_HANDLE_VALUE)
-	{
+	if (hModuleSnap == INVALID_HANDLE_VALUE)	{
 		printError(TEXT("CreateToolhelp32Snapshot (of modules)"));
 		return(FALSE);
 	}
 
 	me32.dwSize = sizeof(MODULEENTRY32);
 
-	if (!Module32First(hModuleSnap, &me32))
-	{
+	if (!Module32First(hModuleSnap, &me32))	{
 		printError(TEXT("Module32First"));  
 		CloseHandle(hModuleSnap);           
 		return(FALSE);
 	}
 
-	do
-	{
+	do	{
 		_tprintf(TEXT("\n\n     MODULE NAME:     %s"), me32.szModule);
 		_tprintf(TEXT("\n     Executable     = %s"), me32.szExePath);
 						printf("\n     MD5              = %s", GetMD5(me32.szExePath));
@@ -112,7 +106,6 @@ BOOL ListProcessModules(DWORD dwPID)
 		_tprintf(TEXT("\n     Ref count (p)  = 0x%04X"), me32.ProccntUsage);
 		_tprintf(TEXT("\n     Base address   = 0x%08X"), (DWORD)me32.modBaseAddr);
 		_tprintf(TEXT("\n     Base size      = %d"), me32.modBaseSize);
-
 	} while (Module32Next(hModuleSnap, &me32));
 
 	CloseHandle(hModuleSnap);
@@ -121,8 +114,7 @@ BOOL ListProcessModules(DWORD dwPID)
 
 
 
-BOOL ListProcessThreads(DWORD dwOwnerPID)
-{
+BOOL ListProcessThreads(DWORD dwOwnerPID){
 	HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
 	THREADENTRY32 te32;
 
@@ -132,8 +124,7 @@ BOOL ListProcessThreads(DWORD dwOwnerPID)
 
 	te32.dwSize = sizeof(THREADENTRY32);
 
-	if (!Thread32First(hThreadSnap, &te32))
-	{
+	if (!Thread32First(hThreadSnap, &te32))	{
 		printError(TEXT("Thread32First")); 
 		CloseHandle(hThreadSnap);         
 		return(FALSE);
@@ -169,8 +160,7 @@ BOOL KillProcess(DWORD dwProcessId){
 
 	return result;
 }
-void printError(TCHAR* msg)
-{
+void printError(TCHAR* msg){
 	DWORD eNum;
 	TCHAR sysMsg[256];
 	TCHAR* p;
@@ -211,8 +201,7 @@ char* GetMD5(LPCWSTR path) {
 		FILE_FLAG_SEQUENTIAL_SCAN,
 		NULL);
 
-	if (INVALID_HANDLE_VALUE == hFile)
-	{
+	if (INVALID_HANDLE_VALUE == hFile)	{
 		dwStatus = GetLastError();
 		printf("Error opening file %s\nError: %d\n", filename,
 			dwStatus);
@@ -223,16 +212,14 @@ char* GetMD5(LPCWSTR path) {
 		NULL,
 		NULL,
 		PROV_RSA_FULL,
-		CRYPT_VERIFYCONTEXT))
-	{
+		CRYPT_VERIFYCONTEXT))	{
 		dwStatus = GetLastError();
 		printf("CryptAcquireContext failed: %d\n", dwStatus);
 		CloseHandle(hFile);
 		return dwStatus;
 	}
 
-	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
-	{
+	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))	{
 		dwStatus = GetLastError();
 		printf("CryptAcquireContext failed: %d\n", dwStatus);
 		CloseHandle(hFile);
@@ -241,15 +228,11 @@ char* GetMD5(LPCWSTR path) {
 	}
 
 	while (bResult = ReadFile(hFile, rgbFile, BUFSIZE,
-		&cbRead, NULL))
-	{
+		&cbRead, NULL))	{
 		if (0 == cbRead)
-		{
 			break;
-		}
 
-		if (!CryptHashData(hHash, rgbFile, cbRead, 0))
-		{
+		if (!CryptHashData(hHash, rgbFile, cbRead, 0)){
 			dwStatus = GetLastError();
 			printf("CryptHashData failed: %d\n", dwStatus);
 			CryptReleaseContext(hProv, 0);
@@ -259,8 +242,7 @@ char* GetMD5(LPCWSTR path) {
 		}
 	}
 
-	if (!bResult)
-	{
+	if (!bResult){
 		dwStatus = GetLastError();
 		printf("ReadFile failed: %d\n", dwStatus);
 		CryptReleaseContext(hProv, 0);
@@ -270,20 +252,16 @@ char* GetMD5(LPCWSTR path) {
 	}
 	char result[BUFSIZE] = { 0, };
 	cbHash = MD5LEN;
-	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))
-	{
+	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))	{
 		//printf("MD5 hash of file %s is: ", filename)
 	   DWORD i;
-		for ( i = 0; i < cbHash; i++)
-		{
+		for ( i = 0; i < cbHash; i++)	{
 			char CH = rgbDigits[rgbHash[i] >> 4];
 			char CL = rgbDigits[rgbHash[i] & 0xf];
 			sprintf(result, "%s%c%c", result, CH, CL);
 			//printf("%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
 		}
-	}
-	else
-	{
+	}else{
 		dwStatus = GetLastError();
 		printf("CryptGetHashParam failed: %d\n", dwStatus);
 	}
