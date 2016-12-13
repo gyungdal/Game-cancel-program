@@ -1,0 +1,25 @@
+﻿  main.c
+d:\language\c++\program list\program list\program list\main.c(123): warning C4477: 'wprintf' : 서식 문자열 '%s'에 'unsigned short *' 형식의 인수가 필요하지만 variadic 인수 1의 형식이 'char *'입니다.
+  d:\language\c++\program list\program list\program list\main.c(123): note: 서식 문자열에서 '%hs'을(를) 사용하는 것이 좋습니다.
+  d:\language\c++\program list\program list\program list\main.c(123): note: 서식 문자열에서 '%Ts'을(를) 사용하는 것이 좋습니다.
+  d:\language\c++\program list\program list\program list\main.c(123): note: C99 표준 의미 체계가 필요한 경우 _CRT_STDIO_ISO_WIDE_SPECIFIERS를 정의하는 것이 좋습니다.
+d:\language\c++\program list\program list\program list\main.c(228): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(241): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(250): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(268): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(279): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(292): warning C4047: '함수': 'const char *'의 간접 참조 수준이 'char'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(292): warning C4024: 'strcat': 형식 및 실제 매개 변수 2의 형식이 서로 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(293): warning C4047: '함수': 'const char *'의 간접 참조 수준이 'char'과(와) 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(293): warning C4024: 'strcat': 형식 및 실제 매개 변수 2의 형식이 서로 다릅니다.
+d:\language\c++\program list\program list\program list\main.c(226): warning C4477: 'printf' : 서식 문자열 '%s'에 'char *' 형식의 인수가 필요하지만 variadic 인수 1의 형식이 'LPCWSTR'입니다.
+  d:\language\c++\program list\program list\program list\main.c(226): note: 서식 문자열에서 '%ls'을(를) 사용하는 것이 좋습니다.
+  d:\language\c++\program list\program list\program list\main.c(226): note: 서식 문자열에서 '%lls'을(를) 사용하는 것이 좋습니다.
+  d:\language\c++\program list\program list\program list\main.c(226): note: 서식 문자열에서 '%Ls'을(를) 사용하는 것이 좋습니다.
+  d:\language\c++\program list\program list\program list\main.c(226): note: 서식 문자열에서 '%ws'을(를) 사용하는 것이 좋습니다.
+d:\language\c++\program list\program list\program list\main.c(292): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: 'strcat' 선언을 참조하십시오.
+d:\language\c++\program list\program list\program list\main.c(293): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: 'strcat' 선언을 참조하십시오.
+d:\language\c++\program list\program list\program list\main.c(309): warning C4172: 지역 변수 또는 임시: result의 주소를 반환하고 있습니다.
+LINK : fatal error LNK1168: D:\Language\C++\Program list\Program list\Debug\Program list.exe을(를) 쓰기용으로 열 수 없습니다.
