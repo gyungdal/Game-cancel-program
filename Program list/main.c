@@ -5,25 +5,46 @@
 #include <wincrypt.h>
 #include <stdio.h>
 #include <string.h>
+#include <winsock2.h>
 
 #define BUFSIZE 1024
 #define MD5LEN  16
-
+#define SERVER "127.0.0.1"
+#define PORT "9000"
 BOOL GetProcessList();
 BOOL ListProcessModules(DWORD);
 BOOL ListProcessThreads(DWORD);
 BOOL KillProcess(DWORD);
-char* GetMD5();
+char* GetMD5(LPCWSTR);
+void SocketRelease();
 void printError(TCHAR*);
 
-typedef struct g {
-	DWORD pid;
-	WCHAR exeName[256], MD5[256], exePath[512];
+SOCKADDR_IN servAdr;
+WSADATA wsaData;
+SOCKET hSocket;
+
+typedef struct g{
+	char* exeName, *className, *md5;
 } Game;
 
 int main(void){
-	GetProcessList();
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+	hSocket = socket(PF_INET, SOCK_STREAM, 0);
+
+	memset(&servAdr, 0, sizeof(servAdr));
+	servAdr.sin_family = AF_INET;
+	servAdr.sin_addr.s_addr = inet_addr(SERVER);
+	servAdr.sin_port = htons(atoi(PORT));
+
+	connect(hSocket, (SOCKADDR*)&servAdr, sizeof(servAdr));
+	recv(hSocket, buf, 1024, 0);
+	GetProcessList();	
 	return 0;
+}
+
+void SocketRelease() {
+	WSACleanup();
 }
 
 BOOL GetProcessList(){
