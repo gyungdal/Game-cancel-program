@@ -5,7 +5,6 @@
 #include <wincrypt.h>
 #include <stdio.h>
 #include <string.h>
-#include <winsock2.h>
 
 #define BUFSIZE 1024
 #define MD5LEN  16
@@ -28,23 +27,19 @@ typedef struct g{
 } Game;
 
 int main(void){
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
+	//WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	hSocket = socket(PF_INET, SOCK_STREAM, 0);
+	//hSocket = socket(PF_INET, SOCK_STREAM, 0);
 
-	memset(&servAdr, 0, sizeof(servAdr));
-	servAdr.sin_family = AF_INET;
-	servAdr.sin_addr.s_addr = inet_addr(SERVER);
-	servAdr.sin_port = htons(atoi(PORT));
-
-	connect(hSocket, (SOCKADDR*)&servAdr, sizeof(servAdr));
-	recv(hSocket, buf, 1024, 0);
+	//memset(&servAdr, 0, sizeof(servAdr));
+	//servAdr.sin_family = AF_INET;
+	//servAdr.sin_addr.s_addr = inet_addr(SERVER);
+	//servAdr.sin_port = htons(atoi(PORT));	
+	Game game;
+	//connect(hSocket, (SOCKADDR*)&servAdr, sizeof(servAdr));
+	//recv(hSocket, game.className, 1024, 0);
 	GetProcessList();	
 	return 0;
-}
-
-void SocketRelease() {
-	WSACleanup();
 }
 
 BOOL GetProcessList(){
@@ -82,23 +77,19 @@ BOOL GetProcessList(){
 				printError(TEXT("GetPriorityClass"));
 			CloseHandle(hProcess);
 		}
-
+		
 		_tprintf(TEXT("\n  Process ID        = 0x%08X"), pe32.th32ProcessID);
 		_tprintf(TEXT("\n  Thread count      = %d"), pe32.cntThreads);
 		_tprintf(TEXT("\n  Parent process ID = 0x%08X"), pe32.th32ParentProcessID);
 		_tprintf(TEXT("\n  Priority base     = %d"), pe32.pcPriClassBase);
-		if (dwPriorityClass)
-			_tprintf(TEXT("\n  Priority class    = %d"), dwPriorityClass);
-
+		_tprintf(TEXT("\n  Priority class    = %d"), dwPriorityClass);
 		ListProcessModules(pe32.th32ProcessID);
 		ListProcessThreads(pe32.th32ProcessID);
-
 	} while (Process32Next(hProcessSnap, &pe32));
 
 	CloseHandle(hProcessSnap);
 	return(TRUE);
 }
-
 
 BOOL ListProcessModules(DWORD dwPID){
 	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
@@ -109,7 +100,6 @@ BOOL ListProcessModules(DWORD dwPID){
 		printError(TEXT("CreateToolhelp32Snapshot (of modules)"));
 		return(FALSE);
 	}
-
 	me32.dwSize = sizeof(MODULEENTRY32);
 
 	if (!Module32First(hModuleSnap, &me32))	{
@@ -117,11 +107,13 @@ BOOL ListProcessModules(DWORD dwPID){
 		CloseHandle(hModuleSnap);           
 		return(FALSE);
 	}
-
 	do	{
 		_tprintf(TEXT("\n\n     MODULE NAME:     %s"), me32.szModule);
 		_tprintf(TEXT("\n     Executable     = %s"), me32.szExePath);
-						printf("\n     MD5              = %s", GetMD5(me32.szExePath));
+		printf("\n     MD5              = %s", GetMD5(me32.szExePath));
+		char className[256] = { 0, };
+		GetClassName(hModuleSnap, className, 256);
+		_tprintf(TEXT("\n     Class     = %s"), className);
 		_tprintf(TEXT("\n     Process ID     = 0x%08X"), me32.th32ProcessID);
 		_tprintf(TEXT("\n     Ref count (g)  = 0x%04X"), me32.GlblcntUsage);
 		_tprintf(TEXT("\n     Ref count (p)  = 0x%04X"), me32.ProccntUsage);
@@ -151,7 +143,7 @@ BOOL ListProcessThreads(DWORD dwOwnerPID){
 		return(FALSE);
 	}
 
-	/*do
+	do
 	{
 		if (te32.th32OwnerProcessID == dwOwnerPID)
 		{
@@ -161,7 +153,7 @@ BOOL ListProcessThreads(DWORD dwOwnerPID){
 			_tprintf(TEXT("\n"));
 		}
 	} while (Thread32Next(hThreadSnap, &te32));
-	*/
+	
 	CloseHandle(hThreadSnap);
 	return(TRUE);
 }

@@ -1,10 +1,6 @@
 ﻿  main.c
 d:\language\c++\program list\program list\main.c(38): warning C4101: 'game' :참조되지 않은 지역 변수입니다.
-d:\language\c++\program list\program list\main.c(115): warning C4133: '함수': 'char [256]'과(와) 'LPWSTR' 사이의 형식이 호환되지 않습니다.
-d:\language\c++\program list\program list\main.c(116): warning C4477: 'wprintf' : 서식 문자열 '%s'에 'unsigned short *' 형식의 인수가 필요하지만 variadic 인수 1의 형식이 'char *'입니다.
-  d:\language\c++\program list\program list\main.c(116): note: 서식 문자열에서 '%hs'을(를) 사용하는 것이 좋습니다.
-  d:\language\c++\program list\program list\main.c(116): note: 서식 문자열에서 '%Ts'을(를) 사용하는 것이 좋습니다.
-  d:\language\c++\program list\program list\main.c(116): note: C99 표준 의미 체계가 필요한 경우 _CRT_STDIO_ISO_WIDE_SPECIFIERS를 정의하는 것이 좋습니다.
+d:\language\c++\program list\program list\main.c(120): warning C4311: '형식 캐스팅': 'BYTE *'에서 'DWORD'(으)로 포인터가 잘립니다.
 d:\language\c++\program list\program list\main.c(221): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
 d:\language\c++\program list\program list\main.c(232): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
 d:\language\c++\program list\program list\main.c(240): warning C4047: 'return': 'char *'의 간접 참조 수준이 'DWORD'과(와) 다릅니다.
@@ -17,6 +13,7 @@ d:\language\c++\program list\program list\main.c(219): warning C4477: 'printf' :
   d:\language\c++\program list\program list\main.c(219): note: 서식 문자열에서 '%ws'을(를) 사용하는 것이 좋습니다.
 d:\language\c++\program list\program list\main.c(274): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 'sprintf' 선언을 참조하십시오.
+d:\language\c++\program list\program list\main.c(115): warning C4700: 초기화되지 않은 'className' 지역 변수를 사용했습니다.
 d:\language\c++\program list\program list\main.c(286): warning C4172: 지역 변수 또는 임시: result의 주소를 반환하고 있습니다.
-  Program list.vcxproj -> D:\Language\C++\Program list\Debug\Program list.exe
-  Program list.vcxproj -> D:\Language\C++\Program list\Debug\Program list.pdb (Full PDB)
+  Program list.vcxproj -> D:\Language\C++\Program list\x64\Debug\Program list.exe
+  Program list.vcxproj -> D:\Language\C++\Program list\x64\Debug\Program list.pdb (Full PDB)
