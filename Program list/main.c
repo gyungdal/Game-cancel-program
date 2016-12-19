@@ -272,7 +272,7 @@ char* GetMD5(LPCWSTR path) {
 			char CH = rgbDigits[rgbHash[i] >> 4];
 			char CL = rgbDigits[rgbHash[i] & 0xf];
 			sprintf(result, "%s%c%c", result, CH, CL);
-			//printf("%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
+			printf("%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
 		}
 	}else{
 		dwStatus = GetLastError();
