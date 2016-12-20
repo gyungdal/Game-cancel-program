@@ -111,7 +111,7 @@ BOOL ListProcessModules(DWORD dwPID){
 		_tprintf(TEXT("\n\n     MODULE NAME:     %s"), me32.szModule);
 		_tprintf(TEXT("\n     Executable     = %s"), me32.szExePath);
 		printf("\n     MD5              = %s", GetMD5(me32.szExePath));
-		char className[256] = { 0, };
+		char* className = calloc(256, sizeof(char));
 		GetClassName(hModuleSnap, className, 256);
 		_tprintf(TEXT("\n     Class     = %s"), className);
 		_tprintf(TEXT("\n     Process ID     = 0x%08X"), me32.th32ProcessID);
@@ -263,7 +263,7 @@ char* GetMD5(LPCWSTR path) {
 		CloseHandle(hFile);
 		return dwStatus;
 	}
-	char result[BUFSIZE] = { 0, };
+	char* result = calloc(BUFSIZE, sizeof(char));
 	cbHash = MD5LEN;
 	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))	{
 		//printf("MD5 hash of file %s is: ", filename)
@@ -272,7 +272,7 @@ char* GetMD5(LPCWSTR path) {
 			char CH = rgbDigits[rgbHash[i] >> 4];
 			char CL = rgbDigits[rgbHash[i] & 0xf];
 			sprintf(result, "%s%c%c", result, CH, CL);
-			printf("%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
+			//printf("%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
 		}
 	}else{
 		dwStatus = GetLastError();
