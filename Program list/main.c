@@ -1,4 +1,4 @@
-#pragma one
+
 #include <windows.h>
 #include <tlhelp32.h>
 #include <wincrypt.h>
@@ -7,6 +7,7 @@
 #include <tchar.h>
 
 #pragma warning(disable:4996)
+#pragma comment(lib, "ws2_32.lib")
 
 #define BUFSIZE 1024
 #define MD5LEN  16
@@ -34,7 +35,7 @@ int main(void) {
 	return 0;
 }
 
-/*
+
 DWORD WINAPI getDataFromServer() {
 	WSADATA wsaData;
 	SOCKET hSocket;
@@ -76,7 +77,7 @@ DWORD WINAPI getDataFromServer() {
 	WSACleanup();
 
 	return 1;
-}*/
+}
 
 
 BOOL GetProcessList() {
