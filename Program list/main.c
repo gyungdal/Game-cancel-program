@@ -1,10 +1,11 @@
-
 #include <windows.h>
 #include <tlhelp32.h>
 #include <wincrypt.h>
 #include <stdio.h>
 #include <string.h>
 #include <tchar.h>
+#include <inttypes.h>
+#include <io.h>  
 
 #pragma warning(disable:4996)
 #pragma comment(lib, "ws2_32.lib")
@@ -13,119 +14,185 @@
 #define MD5LEN  16
 #define SERVER "127.0.0.1"
 #define PORT 8000
+#define MAX_THREADS 2
 
-DWORD WINAPI getDataFromServer();
+
+DWORD WINAPI getDataFromServer(LPVOID lpParam);
+DWORD WINAPI GetProcessList(LPVOID lpParam);
+
 HWND GetWinHandle(ULONG pid);
 ULONG ProcIDFromWnd(HWND hwnd);
-BOOL GetProcessList();
 BOOL ListProcessModules(DWORD);
 BOOL ListProcessThreads(DWORD);
 BOOL KillProcess(DWORD);
+
+BOOL isBlockHash(char*);
+BOOL isBlockName(char*);
+BOOL isBlockClass(char*);
+
 char* GetMD5(LPCWSTR);
-void SocketRelease();
 void printError(const wchar_t*);
 
-typedef struct g {
-	char* exeName, *className, *md5;
-} Game;
+int main()
+{
+	DWORD dwThreadIDArray[MAX_THREADS];
+	HANDLE hThreadArray[MAX_THREADS];
+	hThreadArray[0] = CreateThread(NULL, 0, GetProcessList, NULL, 0, &dwThreadIDArray[0]);
+	if (hThreadArray[0] == NULL)
+		printError(TEXT("CreateThread() Error!"));
 
-int main(void) {
-	Game game;
-	GetProcessList();
-	return 0;
+	hThreadArray[1] = CreateThread(NULL, 0, getDataFromServer, NULL, 0, &dwThreadIDArray[1]);
+	if (hThreadArray[1] == NULL)
+		printError(TEXT("CreateThread() Error!"));
+
+	WaitForMultipleObjects(MAX_THREADS, hThreadArray, TRUE, INFINITE);
+	for (int i = 0; i < MAX_THREADS; i++)
+		CloseHandle(hThreadArray[i]);
 }
 
+DWORD WINAPI getDataFromServer(LPVOID lpParam) {
+	while (1) {
+		WSADATA wsaData;
+		SOCKET hSocket;
+		SOCKADDR_IN servAddr;
+		char message[3];
+		int strLen;
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+		{
+			printError(TEXT("WSAStartup(), error"));
+		}
 
-DWORD WINAPI getDataFromServer() {
-	WSADATA wsaData;
-	SOCKET hSocket;
-	SOCKADDR_IN servAddr;
-	char message[30];
-	int strLen;
-	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-	{
-	printError(TEXT("WSAStartup(), error"));
+		// 서버 접속을 위한 소켓 생성
+		hSocket = socket(PF_INET, SOCK_STREAM, 0);
+		if (hSocket == INVALID_SOCKET)
+		{
+			printError(TEXT("hSocketet(), error"));
+		}
+		memset(&servAddr, 0, sizeof(servAddr));
+		servAddr.sin_family = AF_INET;
+		servAddr.sin_addr.s_addr = inet_addr(SERVER);
+		servAddr.sin_port = htons(PORT);
+		// 서버로 연결 요청
+		if (connect(hSocket, (SOCKADDR*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR)
+		{
+			printError(TEXT("Connect() error"));
+		}
+
+		for (int i = 0; i < 3; i++) {
+			FILE* fp;
+			switch (i) {
+				case 0 :
+					fp = fopen("ClassID.txt", "rb");
+					break;
+				case 1 :
+					fp = fopen("ProcessName.txt", "rb");
+					break;
+				case 2 :
+					fp = fopen("Hash.txt", "rb");
+					break;
+				default: break;
+			}
+			char* servlen = (char*)calloc(64, 1);
+			if (fp == NULL) 
+				servlen[0] = '0';
+			else {
+				fseek(fp, 0, SEEK_END);
+
+				itoa(ftell(fp), servlen, 10);
+			}
+			int test = send(hSocket, servlen, 64, 0);
+			// 데이터 수신
+			strLen = recv(hSocket, message, 3, 0);
+			if (strLen == -1) {
+				printError(TEXT("Fail recv from server...\n"));
+			}
+			else {
+				if (strncmp(message, "OK", 2) == 0) {
+					printf("OK!\n");
+				}
+				else {
+					switch (i) {
+					case 0:
+						fp = fopen("ClassID.txt", "wb");
+						break;
+					case 1:
+						fp = fopen("ProcessName.txt", "wb");
+						break;
+					case 2:
+						fp = fopen("Hash.txt", "wb");
+						break;
+					default: break;
+					}
+					char* len = (char*)calloc(64, 1);
+					recv(hSocket, len, 64, 0);
+					char* temp = (char*)calloc(atoi(len), 1);
+					recv(hSocket, temp, atoi(len), 0);
+					fwrite(temp, sizeof(char), atoi(len), fp);
+					free(temp);
+					free(servlen);
+					free(len);
+				}
+			}
+			printf("Message from server : %s \n", message);
+		}
+		// 연결 종료
+		closesocket(hSocket);
+		WSACleanup();
+		Sleep(1000 * 60 * 2);
 	}
-
-	// 서버 접속을 위한 소켓 생성
-	hSocket = socket(PF_INET, SOCK_STREAM, 0);
-	if (hSocket == INVALID_SOCKET)
-	{
-	printError(TEXT("hSocketet(), error"));
-	}
-	memset(&servAddr, 0, sizeof(servAddr));
-	servAddr.sin_family = AF_INET;
-	servAddr.sin_addr.s_addr = inet_addr(SERVER);
-	servAddr.sin_port = htons(PORT);
-	// 서버로 연결 요청
-	if (connect(hSocket, (SOCKADDR*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR)
-	{
-		printError(TEXT("Connect() error"));
-	}
-
-	// 데이터 수신
-	strLen = recv(hSocket, message, sizeof(message) - 1, 0);
-	if (strLen == -1)
-	{
-		printError(TEXT("read() error"));
-	}
-	message[strLen] = 0;
-	printf("Message from server : %s \n", message);
-
-	// 연결 종료
-	closesocket(hSocket);
-	WSACleanup();
-
 	return 1;
 }
 
 
-BOOL GetProcessList() {
-	HANDLE hProcessSnap;
-	HANDLE hProcess;
-	PROCESSENTRY32 pe32;
-	DWORD dwPriorityClass;
+DWORD WINAPI GetProcessList(LPVOID lpParam) {
+	while (1) {
+		HANDLE hProcessSnap;
+		HANDLE hProcess;
+		PROCESSENTRY32 pe32;
+		DWORD dwPriorityClass;
 
-	hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hProcessSnap == INVALID_HANDLE_VALUE) {
-		printError(TEXT("CreateToolhelp32Snapshot (of processes)"));
-		return(FALSE);
-	}
-
-	pe32.dwSize = sizeof(PROCESSENTRY32);
-
-	if (!Process32First(hProcessSnap, &pe32)) {
-		printError(TEXT("Process32First"));
-		CloseHandle(hProcessSnap);
-		return(FALSE);
-	}
-
-	do {
-		_tprintf(TEXT("\n\n====================================================="));
-		_tprintf(TEXT("\nPROCESS NAME:  %s"), pe32.szExeFile);
-		_tprintf(TEXT("\n-------------------------------------------------------"));
-
-		dwPriorityClass = 0;
-		hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
-		if (hProcess == NULL)
-			printError(TEXT("OpenProcess"));
-		else {
-			dwPriorityClass = GetPriorityClass(hProcess);
-			if (!dwPriorityClass)
-				printError(TEXT("GetPriorityClass"));
-			CloseHandle(hProcess);
+		hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+		if (hProcessSnap == INVALID_HANDLE_VALUE) {
+			printError(TEXT("CreateToolhelp32Snapshot (of processes)"));
+			return(FALSE);
 		}
 
-		_tprintf(TEXT("\n  Process ID        = 0x%08X"), pe32.th32ProcessID);
-		_tprintf(TEXT("\n  Thread count      = %d"), pe32.cntThreads);
-		_tprintf(TEXT("\n  Parent process ID = 0x%08X"), pe32.th32ParentProcessID);
-		_tprintf(TEXT("\n  Priority base     = %d"), pe32.pcPriClassBase);
-		_tprintf(TEXT("\n  Priority class    = %d"), dwPriorityClass);
-		ListProcessModules(pe32.th32ProcessID);
-		ListProcessThreads(pe32.th32ProcessID);
-	} while (Process32Next(hProcessSnap, &pe32));
+		pe32.dwSize = sizeof(PROCESSENTRY32);
 
-	CloseHandle(hProcessSnap);
+		if (!Process32First(hProcessSnap, &pe32)) {
+			printError(TEXT("Process32First"));
+			CloseHandle(hProcessSnap);
+			return(FALSE);
+		}
+
+		do {
+			_tprintf(TEXT("\n\n====================================================="));
+			_tprintf(TEXT("\nPROCESS NAME:  %s"), pe32.szExeFile);
+			_tprintf(TEXT("\n-------------------------------------------------------"));
+
+			dwPriorityClass = 0;
+			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
+			if (hProcess == NULL)
+				printError(TEXT("OpenProcess"));
+			else {
+				dwPriorityClass = GetPriorityClass(hProcess);
+				if (!dwPriorityClass)
+					printError(TEXT("GetPriorityClass"));
+				CloseHandle(hProcess);
+			}
+
+			_tprintf(TEXT("\n  Process ID        = 0x%08X"), pe32.th32ProcessID);
+			_tprintf(TEXT("\n  Thread count      = %d"), pe32.cntThreads);
+			_tprintf(TEXT("\n  Parent process ID = 0x%08X"), pe32.th32ParentProcessID);
+			_tprintf(TEXT("\n  Priority base     = %d"), pe32.pcPriClassBase);
+			_tprintf(TEXT("\n  Priority class    = %d"), dwPriorityClass);
+			ListProcessModules(pe32.th32ProcessID);
+			ListProcessThreads(pe32.th32ProcessID);
+		} while (Process32Next(hProcessSnap, &pe32));
+
+		CloseHandle(hProcessSnap);
+		Sleep(1000 * 60);
+	}
 	return(TRUE);
 }
 
@@ -145,12 +212,27 @@ BOOL ListProcessModules(DWORD dwPID) {
 		CloseHandle(hModuleSnap);
 		return(FALSE);
 	}
-	do {
+	do {	
 		_tprintf(TEXT("\n\n     MODULE NAME:     %s"), me32.szModule);
 		_tprintf(TEXT("\n     Executable     = %s"), me32.szExePath);
-		printf("\n     MD5              = %s", GetMD5(me32.szExePath));
+		char* md5 = GetMD5(me32.szExePath);
+		printf("\n     MD5              = %s", md5);
 		char * className = (char*)calloc(256, sizeof(char));
 		GetClassName(GetWinHandle(me32.th32ProcessID), (LPTSTR)className, 256);
+		if (isBlockClass(className)) {
+			if (isBlockName(me32.szModule)) {
+				if (isBlockHash(md5)) {
+					KillProcess(me32.th32ProcessID);
+
+					free(md5);
+					free(className);
+					continue;
+
+				}
+			}
+		}
+		free(md5);
+		free(className);
 		_tprintf(TEXT("\n     Class     = %s"), className);
 		_tprintf(TEXT("\n     Process ID     = 0x%08X"), me32.th32ProcessID);
 		_tprintf(TEXT("\n     Ref count (g)  = 0x%04X"), me32.GlblcntUsage);
@@ -163,7 +245,44 @@ BOOL ListProcessModules(DWORD dwPID) {
 	return(TRUE);
 }
 
+BOOL isBlockName(char* name) {
+		FILE* fp = fopen("ProcessName.txt", "rb");
+		char temp[256] = { 0, };
+		if (fp == NULL)
+			return(FALSE);
+		while (!feof(fp)) {
+			fscanf(fp, "%s", &temp);
+			if (strcmp(temp, name) == 0)
+				return (TRUE);
+		}
+		return (FALSE);
+}
 
+BOOL isBlockHash(char* md5) {
+	FILE* fp = fopen("Hash.txt", "rb");
+	char temp[256] = { 0, };
+	if (fp == NULL)
+		return(FALSE);
+	while (!feof(fp)) {
+		fscanf(fp, "%s", &temp);
+		if (strcmp(temp, md5) == 0)
+			return (TRUE);
+	}
+	return (FALSE);
+}
+
+BOOL isBlockClass(char* className) {
+	FILE* fp = fopen("ClassID.txt", "rb");
+	char temp[256] = { 0, };
+	if (fp == NULL)
+		return(FALSE);
+	while (!feof(fp)) {
+		fscanf(fp, "%s", &temp);
+		if (strcmp(temp, className) == 0)
+			return (TRUE);
+	}
+	return (FALSE);
+}
 
 ULONG ProcIDFromWnd(HWND hwnd) {
 	ULONG idProc;
@@ -249,6 +368,8 @@ void printError(const wchar_t* msg) {
 		((*p == '.') || (*p < 33)));
 
 	_tprintf(TEXT("\n  WARNING: %s failed with error %d (%s)"), msg, eNum, sysMsg);
+
+	//exit(EXIT_FAILURE);
 }
 
 char* GetMD5(LPCWSTR path) {
