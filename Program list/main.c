@@ -13,7 +13,7 @@
 #define BUFSIZE 1024
 #define MD5LEN  16
 #define SERVER "127.0.0.1"
-#define PORT 8000
+#define PORT 8001
 #define MAX_THREADS 2
 
 
@@ -22,9 +22,10 @@ DWORD WINAPI GetProcessList(LPVOID lpParam);
 
 HWND GetWinHandle(ULONG pid);
 ULONG ProcIDFromWnd(HWND hwnd);
-BOOL ListProcessModules(DWORD);
-BOOL ListProcessThreads(DWORD);
+BOOL ListProcessModules(DWORD, BOOL );
+BOOL ListProcessThreads(DWORD, BOOL);
 BOOL KillProcess(DWORD);
+char* getName(char* def);
 
 BOOL isBlockHash(char*);
 BOOL isBlockName(char*);
@@ -81,21 +82,21 @@ DWORD WINAPI getDataFromServer(LPVOID lpParam) {
 		for (int i = 0; i < 3; i++) {
 			FILE* fp;
 			switch (i) {
-				case 0 :
-					fp = fopen("ClassID.txt", "rb");
-					break;
-				case 1 :
-					fp = fopen("ProcessName.txt", "rb");
-					break;
-				case 2 :
-					fp = fopen("Hash.txt", "rb");
-					break;
-				default: break;
+			case 0:
+				fp = fopen("ClassID.txt", "rb");
+				break;
+			case 1:
+				fp = fopen("ProcessName.txt", "rb");
+				break;
+			case 2:
+				fp = fopen("Hash.txt", "rb");
+				break;
+			default: break;
 			}
 			char* servlen = (char*)calloc(64, 1);
-			if (fp == NULL) 
+			if (fp == NULL){
 				servlen[0] = '0';
-			else {
+		  } else {
 				fseek(fp, 0, SEEK_END);
 
 				itoa(ftell(fp), servlen, 10);
@@ -111,15 +112,17 @@ DWORD WINAPI getDataFromServer(LPVOID lpParam) {
 					printf("OK!\n");
 				}
 				else {
+					if(fp != NULL)
+							fclose(fp);
 					switch (i) {
 					case 0:
-						fp = fopen("ClassID.txt", "wb");
+						fp = fopen("ClassID.txt", "w+");
 						break;
 					case 1:
-						fp = fopen("ProcessName.txt", "wb");
+						fp = fopen("ProcessName.txt", "w+");
 						break;
 					case 2:
-						fp = fopen("Hash.txt", "wb");
+						fp = fopen("Hash.txt", "w+");
 						break;
 					default: break;
 					}
@@ -133,6 +136,7 @@ DWORD WINAPI getDataFromServer(LPVOID lpParam) {
 					free(len);
 				}
 			}
+			fclose(fp);
 			printf("Message from server : %s \n", message);
 		}
 		// 연결 종료
@@ -143,7 +147,26 @@ DWORD WINAPI getDataFromServer(LPVOID lpParam) {
 	return 1;
 }
 
+char* getName(char* def) {
+	int i = 0;
+	int size = 0;
+	char *temp_def = def;
 
+	while (*temp_def != 0x00) {
+		size++;
+		temp_def += 2;
+	}
+
+	char* temp = (char*)calloc(size+1, 1);
+
+	while (*def != 0x00) {
+		temp[i] = *def;
+		def += 2;
+		i++;
+	}
+
+	return temp;
+}
 DWORD WINAPI GetProcessList(LPVOID lpParam) {
 	while (1) {
 		HANDLE hProcessSnap;
@@ -169,7 +192,10 @@ DWORD WINAPI GetProcessList(LPVOID lpParam) {
 			_tprintf(TEXT("\n\n====================================================="));
 			_tprintf(TEXT("\nPROCESS NAME:  %s"), pe32.szExeFile);
 			_tprintf(TEXT("\n-------------------------------------------------------"));
+			
+			char *name = getName(pe32.szExeFile);
 
+			BOOL kill = isBlockName(name);
 			dwPriorityClass = 0;
 			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
 			if (hProcess == NULL)
@@ -186,17 +212,19 @@ DWORD WINAPI GetProcessList(LPVOID lpParam) {
 			_tprintf(TEXT("\n  Parent process ID = 0x%08X"), pe32.th32ParentProcessID);
 			_tprintf(TEXT("\n  Priority base     = %d"), pe32.pcPriClassBase);
 			_tprintf(TEXT("\n  Priority class    = %d"), dwPriorityClass);
-			ListProcessModules(pe32.th32ProcessID);
-			ListProcessThreads(pe32.th32ProcessID);
+			ListProcessModules(pe32.th32ProcessID, kill);
+			ListProcessThreads(pe32.th32ProcessID, kill);
+
+			free(name);
 		} while (Process32Next(hProcessSnap, &pe32));
 
 		CloseHandle(hProcessSnap);
-		Sleep(1000 * 60);
+		Sleep(1000 * 60 * 2);
 	}
 	return(TRUE);
 }
 
-BOOL ListProcessModules(DWORD dwPID) {
+BOOL ListProcessModules(DWORD dwPID, BOOL isKill) {
 	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
 	MODULEENTRY32 me32;
 
@@ -218,27 +246,21 @@ BOOL ListProcessModules(DWORD dwPID) {
 		char* md5 = GetMD5(me32.szExePath);
 		printf("\n     MD5              = %s", md5);
 		char * className = (char*)calloc(256, sizeof(char));
-		GetClassName(GetWinHandle(me32.th32ProcessID), (LPTSTR)className, 256);
-		if (isBlockClass(className)) {
-			if (isBlockName(me32.szModule)) {
-				if (isBlockHash(md5)) {
-					KillProcess(me32.th32ProcessID);
-
-					free(md5);
-					free(className);
-					continue;
-
-				}
-			}
+		GetClassName(GetWinHandle(me32.th32ProcessID), className, 256);
+		if (isBlockClass(className) | isKill| isBlockHash(md5)) {
+			KillProcess(me32.th32ProcessID);
+			free(md5);
+			free(className);
+			continue;
 		}
-		free(md5);
-		free(className);
 		_tprintf(TEXT("\n     Class     = %s"), className);
 		_tprintf(TEXT("\n     Process ID     = 0x%08X"), me32.th32ProcessID);
 		_tprintf(TEXT("\n     Ref count (g)  = 0x%04X"), me32.GlblcntUsage);
 		_tprintf(TEXT("\n     Ref count (p)  = 0x%04X"), me32.ProccntUsage);
 		_tprintf(TEXT("\n     Base address   = 0x%08X"), (DWORD)me32.modBaseAddr);
 		_tprintf(TEXT("\n     Base size      = %d"), me32.modBaseSize);
+		free(md5);
+		free(className);
 	} while (Module32Next(hModuleSnap, &me32));
 
 	CloseHandle(hModuleSnap);
@@ -251,10 +273,13 @@ BOOL isBlockName(char* name) {
 		if (fp == NULL)
 			return(FALSE);
 		while (!feof(fp)) {
-			fscanf(fp, "%s", &temp);
-			if (strcmp(temp, name) == 0)
+			fscanf(fp, "%s", temp);
+			if (strncmp(temp, name, strlen(temp) - 1) == 0) {
+				fclose(fp);
 				return (TRUE);
+			}
 		}
+		fclose(fp);
 		return (FALSE);
 }
 
@@ -264,10 +289,13 @@ BOOL isBlockHash(char* md5) {
 	if (fp == NULL)
 		return(FALSE);
 	while (!feof(fp)) {
-		fscanf(fp, "%s", &temp);
-		if (strcmp(temp, md5) == 0)
+		fscanf(fp, "%s", temp);
+		if (strncmp(temp, md5, strlen(temp) - 1) == 0) {
+			fclose(fp);
 			return (TRUE);
+		}
 	}
+	fclose(fp);
 	return (FALSE);
 }
 
@@ -277,10 +305,13 @@ BOOL isBlockClass(char* className) {
 	if (fp == NULL)
 		return(FALSE);
 	while (!feof(fp)) {
-		fscanf(fp, "%s", &temp);
-		if (strcmp(temp, className) == 0)
+		fscanf(fp, "%s", temp);
+		if (strncmp(temp, className, strlen(temp) - 1) == 0) {
+			fclose(fp);
 			return (TRUE);
+		}
 	}
+	fclose(fp);
 	return (FALSE);
 }
 
@@ -304,7 +335,7 @@ HWND GetWinHandle(ULONG pid) {
 	return NULL;
 }
 
-BOOL ListProcessThreads(DWORD dwOwnerPID) {
+BOOL ListProcessThreads(DWORD dwOwnerPID, BOOL kill) {
 	HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
 	THREADENTRY32 te32;
 
@@ -322,6 +353,8 @@ BOOL ListProcessThreads(DWORD dwOwnerPID) {
 
 	do
 	{
+		if (kill)
+			KillProcess(te32.th32ThreadID);
 		/*if (te32.th32OwnerProcessID == dwOwnerPID)
 		{
 		_tprintf(TEXT("\n\n     THREAD ID      = 0x%08X"), te32.th32ThreadID);
